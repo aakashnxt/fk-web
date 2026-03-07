@@ -227,7 +227,7 @@
       items.forEach((p,i)=>p.index=i);
       localStorage.setItem('products',JSON.stringify(items));
       localStorage.setItem('cartTotalAmount',items.reduce((s,p)=>s+p.price*p.qty,0).toFixed(2));
-      if(buyNow)location.href='cart.html';
+      if(buyNow)location.href='checkout.html';
       else{updateCartUI();openCart();}
     }
 

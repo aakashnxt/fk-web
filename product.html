@@ -117,7 +117,7 @@
       const total = products.reduce((s, p) => s + p.price * p.qty, 0);
       localStorage.setItem('cartTotalAmount', total.toFixed(2));
 
-      if (buyNow) location.href = 'cart.html';
+      if (buyNow) location.href = 'checkout.html';
       else {
         updateCartUI();
         openCart();
