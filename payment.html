@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2874f0">
   <title>Payments</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <link rel="stylesheet" href="css/flipkart.css">
   <style>
     .pay-wrap { max-width: 560px; margin: 0 auto; padding-bottom: 84px; }
@@ -39,11 +41,11 @@
 
   <div class="pay-wrap">
     <div class="card">
-      <div class="option active" data-method="phonepe" onclick="selectMethod(this)">
+      <div class="option active" data-method="phonepe" onclick="handleOptionClick(this)">
         <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe">
         <span class="label">PhonePe</span>
       </div>
-      <div class="option" data-method="paytm" onclick="selectMethod(this)">
+      <div class="option" data-method="paytm" onclick="handleOptionClick(this)">
         <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm">
         <span class="label">Paytm</span>
       </div>
@@ -69,8 +71,10 @@
     <button class="btn" onclick="orderNow()">Order Now</button>
   </div>
 
+  <script src="js/app.js"></script>
   <script>
     let selectedMethod = 'phonepe';
+    let upiPayload = { upiId: '', name: 'Store', note: 'Order Payment' };
 
     function formatRs(v) { return '\u20B9' + Number(v || 0).toFixed(0); }
 
@@ -80,9 +84,44 @@
       selectedMethod = el.dataset.method || 'phonepe';
     }
 
+    function buildDeepLink(method) {
+      const upiId = (upiPayload.upiId || '').trim();
+      if (!upiId) return '';
+      const amount = Number(price || 0).toFixed(2);
+      const pa = encodeURIComponent(upiId);
+      const pn = encodeURIComponent(upiPayload.name || 'Store');
+      const tn = encodeURIComponent(upiPayload.note || 'Order Payment');
+      const commonParams = `pa=${pa}&pn=${pn}&am=${amount}&cu=INR&tn=${tn}`;
+      return method === 'phonepe'
+        ? `phonepe://pay?${commonParams}`
+        : `paytmmp://pay?${commonParams}`;
+    }
+
+    function handleOptionClick(el) {
+      selectMethod(el);
+      if (selectedMethod === 'phonepe' || selectedMethod === 'paytm') {
+        const deepLink = buildDeepLink(selectedMethod);
+        if (!deepLink) {
+          alert('UPI ID not found. Please set it in admin panel or use SCAN TO PAY.');
+          return;
+        }
+        window.location.href = deepLink;
+      }
+    }
+
     function orderNow() {
       localStorage.setItem('selectedPaymentMethod', selectedMethod);
-      window.location.href = 'scanner.html';
+      if (selectedMethod === 'scan') {
+        window.location.href = 'scanner.html';
+        return;
+      }
+
+      const deepLink = buildDeepLink(selectedMethod);
+      if (!deepLink) {
+        alert('UPI ID not found. Please set it in admin panel or use SCAN TO PAY.');
+        return;
+      }
+      window.location.href = deepLink;
     }
 
     const items = JSON.parse(localStorage.getItem('products') || '[]');
@@ -94,6 +133,25 @@
     document.getElementById('mrpRow').textContent = formatRs(mrp);
     document.getElementById('payableRow').textContent = formatRs(price);
     document.getElementById('bottomTotal').textContent = formatRs(price);
+
+    (async function initUpi() {
+      if (typeof APP === 'undefined') {
+        const localUpi = JSON.parse(localStorage.getItem('fk_upi') || '{}');
+        upiPayload = {
+          upiId: localUpi.upiId || '',
+          name: localUpi.name || 'Store',
+          note: localUpi.note || 'Order Payment'
+        };
+        return;
+      }
+      await APP.initFirebase();
+      const upi = await APP.getUpiAsync();
+      upiPayload = {
+        upiId: (upi && upi.upiId) || '',
+        name: (upi && upi.name) || 'Store',
+        note: (upi && upi.note) || 'Order Payment'
+      };
+    })();
   </script>
 </body>
 </html>

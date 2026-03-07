@@ -21,7 +21,35 @@
     .fk-badge{position:absolute;top:-5px;right:-8px;background:var(--yellow);color:var(--blue);font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;}
     /* Product */
     .p-img{background:#fff;padding:16px;text-align:center;}
-    .p-img img{max-width:100%;max-height:350px;object-fit:contain;}
+    .p-gallery-main{position:relative;}
+    .p-gallery-main img{max-width:100%;max-height:350px;object-fit:contain;}
+    .p-gallery-nav{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:28px;
+      height:28px;
+      border:none;
+      border-radius:50%;
+      background:rgba(0,0,0,.45);
+      color:#fff;
+      font-size:18px;
+      line-height:1;
+      cursor:pointer;
+    }
+    .p-gallery-nav.prev{left:4px;}
+    .p-gallery-nav.next{right:4px;}
+    .p-gallery-dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+    .p-gallery-dots button{
+      width:8px;
+      height:8px;
+      border:none;
+      border-radius:50%;
+      background:#c7c7c7;
+      cursor:pointer;
+      padding:0;
+    }
+    .p-gallery-dots button.on{background:#2874f0;}
     .p-info{background:#fff;padding:12px;}
     .p-title{font-size:15px;font-weight:500;line-height:1.4;}
     .p-rating{display:inline-flex;align-items:center;gap:4px;background:var(--green);color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:3px;margin:8px 0;}
@@ -73,7 +101,14 @@
     </a>
   </header>
 
-  <div id="pImg" class="p-img"><img src="" alt=""></div>
+  <div id="pImg" class="p-img">
+    <div class="p-gallery-main">
+      <button type="button" class="p-gallery-nav prev" onclick="prevImage()">&#8249;</button>
+      <img id="mainProductImage" src="" alt="">
+      <button type="button" class="p-gallery-nav next" onclick="nextImage()">&#8250;</button>
+    </div>
+    <div id="galleryDots" class="p-gallery-dots"></div>
+  </div>
   <div class="p-info">
     <div class="p-title" id="pTitle">Loading...</div>
     <div class="p-rating" id="pRating">4.2 ★ (0)</div>
@@ -137,10 +172,72 @@
 
     let product = null;
     let selSize = '', selColor = '';
+    let galleryImages = [];
+    let currentImageIndex = 0;
+    let galleryTimer = null;
+
+    function buildGalleryList(p) {
+      const raw = [p && p.image, ...((p && Array.isArray(p.gallery)) ? p.gallery : [])]
+        .map(v => String(v || '').trim())
+        .filter(Boolean);
+      return [...new Set(raw)];
+    }
+
+    function renderGallery() {
+      if (!galleryImages.length) {
+        galleryImages = ['https://placehold.co/400x400/f1f3f6/2874f0?text=No+Image'];
+      }
+      if (currentImageIndex >= galleryImages.length) currentImageIndex = 0;
+      const imgEl = document.getElementById('mainProductImage');
+      imgEl.src = galleryImages[currentImageIndex];
+      imgEl.onerror = function () {
+        imgEl.src = 'https://placehold.co/400x400/f1f3f6/2874f0?text=No+Image';
+      };
+      const dots = document.getElementById('galleryDots');
+      dots.innerHTML = galleryImages.map((_, i) =>
+        `<button type="button" class="${i===currentImageIndex?'on':''}" onclick="goToImage(${i})"></button>`
+      ).join('');
+      const showNav = galleryImages.length > 1;
+      document.querySelector('.p-gallery-nav.prev').style.display = showNav ? 'block' : 'none';
+      document.querySelector('.p-gallery-nav.next').style.display = showNav ? 'block' : 'none';
+    }
+
+    function goToImage(i) {
+      currentImageIndex = i;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function nextImage() {
+      if (galleryImages.length < 2) return;
+      currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function prevImage() {
+      if (galleryImages.length < 2) return;
+      currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function resetGalleryTimer() {
+      if (galleryTimer) clearInterval(galleryTimer);
+      if (galleryImages.length > 1) {
+        galleryTimer = setInterval(() => {
+          currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+          renderGallery();
+        }, 2500);
+      }
+    }
 
     function render() {
       if (!product) return;
-      document.getElementById('pImg').querySelector('img').src = product.image || 'https://placehold.co/400x400/f1f3f6/2874f0?text=No+Image';
+      galleryImages = buildGalleryList(product);
+      currentImageIndex = 0;
+      renderGallery();
+      resetGalleryTimer();
       document.getElementById('pTitle').textContent = product.name || 'Unnamed';
       document.getElementById('pRating').textContent = (product.rating || 4.2).toFixed(1) + ' ★ (' + (product.ratingCount || 0) + ')';
       document.getElementById('pPrice').textContent = '₹' + (product.price || 0);

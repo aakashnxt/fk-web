@@ -6,6 +6,36 @@
   <meta name="theme-color" content="#2874f0">
   <title>Product - Flipkart</title>
   <link rel="stylesheet" href="css/flipkart.css">
+  <style>
+    .main-img-wrap { position: relative; text-align: center; }
+    .gallery-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .gallery-nav.prev { left: 8px; }
+    .gallery-nav.next { right: 8px; }
+    .gallery-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .gallery-dots button {
+      width: 8px;
+      height: 8px;
+      border: none;
+      border-radius: 50%;
+      background: #c7c7c7;
+      cursor: pointer;
+      padding: 0;
+    }
+    .gallery-dots button.on { background: #2874f0; }
+  </style>
 </head>
 <body>
   <div class="fk-overlay" id="overlay"></div>
@@ -24,7 +54,12 @@
   </header>
 
   <div class="fk-product-page">
-    <div class="main-img-wrap"><img id="productImage" src="" alt=""></div>
+    <div class="main-img-wrap">
+      <button type="button" class="gallery-nav prev" onclick="prevImage()">&#8249;</button>
+      <img id="productImage" src="" alt="">
+      <button type="button" class="gallery-nav next" onclick="nextImage()">&#8250;</button>
+      <div id="galleryDots" class="gallery-dots"></div>
+    </div>
     <div class="info">
       <h1 class="p-title" id="productTitle"></h1>
       <div class="p-price-row">
@@ -65,8 +100,69 @@
     if (!currentProduct) { location.href = 'home.html'; }
 
     let selectedSize = (currentProduct.sizes && currentProduct.sizes[0]) || 'M';
+    let galleryImages = [];
+    let currentImageIndex = 0;
+    let galleryTimer = null;
 
-    document.getElementById('productImage').src = currentProduct.image;
+    function buildGalleryList(p) {
+      const raw = [p && p.image, ...((p && Array.isArray(p.gallery)) ? p.gallery : [])]
+        .map(v => String(v || '').trim())
+        .filter(Boolean);
+      return [...new Set(raw)];
+    }
+
+    function renderGallery() {
+      if (!galleryImages.length) {
+        galleryImages = ['https://placehold.co/400x400/f1f3f6/2874f0?text=No+Image'];
+      }
+      if (currentImageIndex >= galleryImages.length) currentImageIndex = 0;
+      const imgEl = document.getElementById('productImage');
+      imgEl.src = galleryImages[currentImageIndex];
+      imgEl.onerror = function () {
+        imgEl.src = 'https://placehold.co/400x400/f1f3f6/2874f0?text=No+Image';
+      };
+      const dots = document.getElementById('galleryDots');
+      dots.innerHTML = galleryImages.map((_, i) =>
+        `<button type="button" class="${i===currentImageIndex?'on':''}" onclick="goToImage(${i})"></button>`
+      ).join('');
+      const showNav = galleryImages.length > 1;
+      document.querySelector('.gallery-nav.prev').style.display = showNav ? 'block' : 'none';
+      document.querySelector('.gallery-nav.next').style.display = showNav ? 'block' : 'none';
+    }
+
+    function goToImage(i) {
+      currentImageIndex = i;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function nextImage() {
+      if (galleryImages.length < 2) return;
+      currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function prevImage() {
+      if (galleryImages.length < 2) return;
+      currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+      renderGallery();
+      resetGalleryTimer();
+    }
+
+    function resetGalleryTimer() {
+      if (galleryTimer) clearInterval(galleryTimer);
+      if (galleryImages.length > 1) {
+        galleryTimer = setInterval(() => {
+          currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+          renderGallery();
+        }, 2500);
+      }
+    }
+
+    galleryImages = buildGalleryList(currentProduct);
+    renderGallery();
+    resetGalleryTimer();
     document.getElementById('productTitle').textContent = currentProduct.name;
     document.getElementById('productPrice').textContent = '₹' + currentProduct.price;
     document.getElementById('productMrp').textContent = '₹' + currentProduct.mrp;
