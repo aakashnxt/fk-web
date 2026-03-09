@@ -1,11 +1,11 @@
 // ─── Firebase Config (hardcoded) ────────────────────────────────────────────
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB_yP3b-yBPELQpeLj1eMMWbxkPIhlY9JE",
-  authDomain: "https://fk-web-1a97e.firebaseapp.com",
-  projectId: "fk-web-1a97e",
-  storageBucket: "fk-web-1a97e.firebasestorage.app",
-  messagingSenderId: "635823075098",
-  appId: "1:635823075098:web:05413da3ea843c27f046a3"
+  apiKey: "AIzaSyDEcnBzi_ZjtUlN2Lg6pe_cOsIinixt4F4",
+  authDomain: "xlgr2-766c1.firebaseapp.com",
+  projectId: "xlgr2-766c1",
+  storageBucket: "xlgr2-766c1.appspot.com",
+  messagingSenderId: "707659644229",
+  appId: "1:707659644229:web:842ce1a1924c87058cd22c"
 };
 
 // ─── APP Object ─────────────────────────────────────────────────────────────
@@ -182,4 +182,3 @@ const APP = {
   getOffPercent(price, mrp) { return (mrp > price) ? Math.round(((mrp - price) / mrp) * 100) : 0; },
   generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 };
-
